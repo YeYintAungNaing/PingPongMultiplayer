@@ -1,0 +1,10 @@
+.singleplayer {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+
+    .game-display{
+        border: 1px solid rgb(3, 101, 72);
+    }
+}

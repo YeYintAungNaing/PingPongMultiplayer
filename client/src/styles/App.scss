@@ -1,0 +1,14 @@
+body{
+    padding: 0;
+    margin: 0;
+}
+
+.app{
+    background-color: black;
+    height: 100vh;
+    
+    .link{
+        color: inherit;
+        text-decoration: none;
+    }
+}
