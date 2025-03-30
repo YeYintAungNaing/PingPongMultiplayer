@@ -14,7 +14,7 @@ function Singleplayer() {
     let animationFrameId: number;
 
     const game = new Game(canvas, ctx);
-    game.start();
+   
 
     const loop = () => {
       //game.update();
