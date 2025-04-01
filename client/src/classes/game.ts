@@ -368,7 +368,6 @@ class Game {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.drawStaticElement()
       
-
       //player and ai (color should be diff)
       this.ctx.beginPath();
       this.ctx.arc(this.player.x, this.player.y, this.player.radius, 0, Math.PI * 2);

@@ -6,7 +6,7 @@ export default function Menu() {
     <div className='menu-page'>
         <div className='menu-card'>
             <Link className='link' to='/singleplayer'>Single player</Link>
-            <Link className='link' to='/multipayer'>Multiplyer</Link>
+            <Link className='link' to='/lobby'>Multiplyer</Link>
         </div>
     </div>
   )

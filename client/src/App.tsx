@@ -3,6 +3,7 @@ import Menu from "./components/Menu"
 import Singleplyer from "./components/Singleplayer"
 import Multiplayer from "./components/Multiplayer"
 import "./styles/App.scss"
+import Lobby from "./components/Lobby"
 
 
 function App() {
@@ -13,7 +14,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Menu/>} />
         <Route path="/singleplayer" element={<Singleplyer/>} />
-        <Route path="/multiplayer" element={<Multiplayer/>} />
+        <Route path="/lobby" element={<Lobby/>} />
+        <Route path="/multiplayer/:id" element={<Multiplayer/>} />
       </Routes>
     </BrowserRouter>
     </div>
