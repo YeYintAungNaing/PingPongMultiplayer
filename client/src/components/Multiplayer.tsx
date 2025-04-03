@@ -4,6 +4,7 @@ import '../styles/Singleplayer.scss'
 
 
 function Multiplayer() {
+  
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [score, setScore] = useState<number[]>([0, 0])
   const [isGameOver, setIsGameOver] = useState(false)
@@ -31,7 +32,9 @@ function Multiplayer() {
     };
     loop();
 
-    return () => cancelAnimationFrame(animationFrameId);
+    return () => {
+      cancelAnimationFrame(animationFrameId)
+    };
   }, [isGameOver]);
 
   function updateScore(scoringSide: string) {
@@ -61,6 +64,7 @@ function Multiplayer() {
           {
             `${score[0]} : ${score[1]}`
           }
+          <button onClick={() => console.log('d')}>button</button>
         </div>
         <canvas className="game-display" ref={canvasRef} width={1100} height={550}/>
       </div>

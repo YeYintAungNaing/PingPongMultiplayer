@@ -32,7 +32,10 @@ function Singleplayer() {
     };
     loop();
 
-    return () => cancelAnimationFrame(animationFrameId);
+    return () => {
+      cancelAnimationFrame(animationFrameId)
+      
+    };
   }, [isGameOver]);
 
   function updateScore(scoringSide: string) {

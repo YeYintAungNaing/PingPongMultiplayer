@@ -1,19 +1,24 @@
 //import { Link } from "react-router-dom"
 
-import { useNavigate } from 'react-router-dom'
+//import { useNavigate } from 'react-router-dom'
 import '../styles/Lobby.scss'
-import { useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
+import { SocketContext } from '../context/SocketProvider'
 
 export default function Lobby() {
-    const navigate = useNavigate()
+    //const navigate = useNavigate()
+    const socket = useContext(SocketContext)
 
     const [isInitialState, setIsInitialState] = useState<boolean>(true) 
     const [isCreating, setIsCreating] = useState<boolean | null>(null)
+    const [playerName, setPlayerName] = useState<string>("")
+    const [lobbies, setLobbies] = useState({})
 
     function creatingRoom() {
         setIsInitialState(false)
         setIsCreating(true)
     }
+
 
     function joiningRoom() {
         setIsInitialState(false)
@@ -21,8 +26,34 @@ export default function Lobby() {
     }
 
     function createRoom() {
-        navigate('/multiplayer/4')
+        //navigate('/multiplayer/4')
+
+        // sessionStorage.setItem("playerId", playerId);
+        // sessionStorage.setItem("playerName", playerName);
+        if (!playerName) {
+            alert('enter your name')
+            return
+        }
+
+        socket.emit("createLobby", { playerName }, (lobbyId: string) => {
+            console.log(lobbyId)
+        //navigate(`/game/${lobbyId}`);
+        });
     }
+
+    useEffect(()=> {
+        socket.emit("getLobbies", (lobbies_: Record<string, { players: string[] }>) => {
+           setLobbies(lobbies_)
+        })
+        socket.on("updateLobbies", (updatedLobbies : Record<string, { players: string[] }>) => { // trigger when backend use io.emit()
+            setLobbies(updatedLobbies);
+        });
+        
+        return () => {
+            socket.off("updateLobbies"); 
+        };
+        
+    }, [])
     
 
     return (
@@ -38,10 +69,28 @@ export default function Lobby() {
                         {
                             isCreating? (
                                 <div>
+                                    <input value={playerName} onChange={(e)=> setPlayerName(e.target.value)} placeholder='Type your name' type="text" />
                                     <button onClick={createRoom}> Create</button>
                                 </div>
                             ) : (
-                                <div>joining</div>
+                                <div>
+                                    {
+                                       Object.keys(lobbies).length > 0 ? (
+                                        <div>
+                                            {
+                                                Object.keys(lobbies).map((lobbyid, i) => (
+                                                    <div key={i}>{lobbyid}</div>
+                                                ))
+                                            }
+                                        </div>
+                                       ) : (
+                                        <div>
+                                            <div>There is no lobby right now create lobby instead?</div>
+                                            <button onClick={() => setIsCreating(true)}>Create</button>
+                                        </div>
+                                       ) 
+                                    }
+                                </div>
                             )
                         }
                     </div>
