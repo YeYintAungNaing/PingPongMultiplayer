@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
     res.send({test : "test"})
 })
 
-const lobbies: Record<string, { players: string[] }> = {};
+const lobbies: Record<string, { players: string[] ; gameStarted : boolean }> = {};
 
 io.on("connection", (socket) => {
     console.log(`player connected with socket id : ${socket.id}`)
@@ -23,22 +23,27 @@ io.on("connection", (socket) => {
         console.log('disconnected')
     })
 
-    // exmaple lobies = {"lobby1": { players: ["player1", "player2"] }}
+    // exmaple lobies = {"2fgr4": { players: ["player1", "player2"] }}
 
     socket.on("createLobby", ({ playerName}, callback) => {
-        const lobbyId = crypto.randomUUID(); 
-        lobbies[lobbyId] = { players: [playerName] };
+        const lobbyId = Math.random().toString(36).substring(2, 8); 
+        //console.log(typeof lobbyId)
+        lobbies[lobbyId] = { players: [playerName], gameStarted : false };
         socket.join(lobbyId); 
         io.emit("updateLobbies", lobbies); // have to use io becuase this must be sent to every connected user inside the global io, not just spefic socket
-        callback(`Lobby : ${lobbyId} has been created by ${playerName}`); 
+        callback(lobbyId); 
     });
 
     socket.on("joinLobby", ({ lobbyId, playerName }) => {
         if (lobbies[lobbyId] && lobbies[lobbyId].players.length < 2) {
           lobbies[lobbyId].players.push(playerName);
           socket.join(lobbyId);
-          //io.to(lobbyId).emit("lobbyUpdated", lobbies[lobbyId]); // Notify players in the lobby
+          //io.to(lobbyId).emit("lobbyUpdated", lobbies[lobbyId]); // io.to (only sent the info to specific room id)
           io.emit("updateLobbies", lobbies); 
+          if (lobbies[lobbyId].players.length === 2) {
+            lobbies[lobbyId].gameStarted = true
+            io.to(lobbyId).emit("gameReady")
+          }
         }
     });
 
@@ -48,8 +53,11 @@ io.on("connection", (socket) => {
         // socket.join(lobbyId); 
         callback(lobbies); 
     });
-});
 
+    socket.on("getLobbyInfo", ({lobbyId}, callback) => {
+        callback(lobbies[lobbyId])
+    })
+});
 
 
 server.listen(7000, () => {

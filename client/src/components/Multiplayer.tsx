@@ -1,17 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import Game from "../classes/onlinegame";
 import '../styles/Singleplayer.scss'
+import { useParams } from "react-router-dom";
+import socket from "../socket/socket";
 
+interface Lobby {
+   players : string[] ;
+   gameStarted : boolean
+}
 
 function Multiplayer() {
   
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [score, setScore] = useState<number[]>([0, 0])
   const [isGameOver, setIsGameOver] = useState(false)
+  const [gameInitiated, setGameInitiated] = useState<boolean>(false)
+  const [players, setPlayers] = useState<string[]>([])
+  const {lobbyId} = useParams()
+  //const [manualEffect, setManualEffect] = useState<number>(0)
+
+
+  //console.log(lobbyId)
 
   useEffect(() => {
     if (isGameOver) {
       console.log('game over')
+      return
+    }
+    if (gameInitiated) {
+      console.log('already initated')
       return
     }
     
@@ -20,22 +37,78 @@ function Multiplayer() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    if (!lobbyId || lobbyId.length !== 6) {
+      alert("invalid lobby id")
+      return
+    }
+
+    // let animationFrameId: number;
+    // socket.emit("getLobbyInfo", {lobbyId}, (lobbyInfo : Lobby) => {
+    //   //console.log(lobbyInfo)
+
+    //   if (!lobbyInfo.gameStarted) {
+    //     console.log('waiting for player')
+    //     return
+    //   }
+    //   const [playerOneName, playerTwoName] = lobbyInfo.players;
+    //   setGameInitiated(true)
+    //   setPlayers(lobbyInfo.players)
+    //   const game = new Game(canvas, ctx, playerOneName, playerTwoName, updateScore);
+
+    //   const loop = () => {
+    //     //game.update();
+    //     game.updateBall();
+    //     game.draw();
+    //     animationFrameId = requestAnimationFrame(loop);
+    //   };
+    //   loop();
+    // })
+
     let animationFrameId: number;
 
-    const game = new Game(canvas, ctx, updateScore);
-
-    const loop = () => {
-      //game.update();
-      game.updateBall();
-      game.draw();
-      animationFrameId = requestAnimationFrame(loop);
+    const startGame = (players: string[]) => {
+      const [p1, p2] = players;
+      setPlayers(players);
+      setGameInitiated(true);
+  
+      const game = new Game(canvas, ctx, p1, p2, updateScore);
+  
+      const loop = () => {
+        game.updateBall();
+        game.draw();
+        animationFrameId = requestAnimationFrame(loop);
+      };
+      loop();
     };
-    loop();
+  
+    
+    socket.emit("getLobbyInfo", { lobbyId }, (lobbyInfo: Lobby) => {
+      if (lobbyInfo.players.length === 2 && lobbyInfo.gameStarted) {
+        startGame(lobbyInfo.players);
+      } 
+      else {
+        socket.on("gameReady", () => {  // only open the listener when the game is not started
+          
+          socket.emit("getLobbyInfo", { lobbyId }, (lobbyInfo_ : Lobby) => {
+            startGame(lobbyInfo_.players);
+          });
+        });
+      }
+    });
 
     return () => {
       cancelAnimationFrame(animationFrameId)
+      socket.off("gameReady")
     };
+
   }, [isGameOver]);
+
+
+  // useEffect(()=> {
+  //   socket.on("gameReady", () => { 
+  //     setManualEffect(manualEffect+1)
+  //   });
+  // }, [])
 
   function updateScore(scoringSide: string) {
     setScore((prevScore) => {
@@ -60,14 +133,15 @@ function Multiplayer() {
 
   return  (
       <div className="singleplayer">
-        <div className="scoreBoard">
           {
-            `${score[0]} : ${score[1]}`
+            gameInitiated && players.length === 2 && 
+            <div className="scoreBoard">
+             {`${players[0]} ${score[0]} : ${score[1]} ${players[1]}`}
+            </div>
           }
-          <button onClick={() => console.log('d')}>button</button>
-        </div>
         <canvas className="game-display" ref={canvasRef} width={1100} height={550}/>
       </div>
   )
 };
+
 export default Multiplayer;

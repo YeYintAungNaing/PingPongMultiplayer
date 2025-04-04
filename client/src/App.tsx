@@ -16,7 +16,7 @@ function App() {
         <Route path="/" element={<Menu/>} />
         <Route path="/singleplayer" element={<Singleplyer/>} />      
         <Route path="/lobby" element={ <SocketProvider><Lobby/></SocketProvider>} />
-        <Route path="/multiplayer/:id" element={<SocketProvider><Multiplayer/></SocketProvider>} />
+        <Route path="/multiplayer/:lobbyId" element={<SocketProvider><Multiplayer/></SocketProvider>} />
       </Routes>
     </BrowserRouter>
     </div>

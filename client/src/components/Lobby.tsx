@@ -1,12 +1,12 @@
 //import { Link } from "react-router-dom"
 
-//import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import '../styles/Lobby.scss'
 import { useContext, useEffect, useState } from 'react'
 import { SocketContext } from '../context/SocketProvider'
 
 export default function Lobby() {
-    //const navigate = useNavigate()
+    const navigate = useNavigate()
     const socket = useContext(SocketContext)
 
     const [isInitialState, setIsInitialState] = useState<boolean>(true) 
@@ -17,6 +17,7 @@ export default function Lobby() {
     function creatingRoom() {
         setIsInitialState(false)
         setIsCreating(true)
+        
     }
 
 
@@ -36,16 +37,16 @@ export default function Lobby() {
         }
 
         socket.emit("createLobby", { playerName }, (lobbyId: string) => {
-            console.log(lobbyId)
-        //navigate(`/game/${lobbyId}`);
+            console.log(`Lobby : ${lobbyId} has been created`)
+            navigate(`/multiplayer/${lobbyId}`);
         });
     }
 
     useEffect(()=> {
-        socket.emit("getLobbies", (lobbies_: Record<string, { players: string[] }>) => {
+        socket.emit("getLobbies", (lobbies_: Record<string, { players: string[], gameStarted : boolean }>) => {
            setLobbies(lobbies_)
         })
-        socket.on("updateLobbies", (updatedLobbies : Record<string, { players: string[] }>) => { // trigger when backend use io.emit()
+        socket.on("updateLobbies", (updatedLobbies : Record<string, { players: string[], gameStarted : boolean }>) => { // trigger when backend use io.emit()
             setLobbies(updatedLobbies);
         });
         
@@ -54,7 +55,12 @@ export default function Lobby() {
         };
         
     }, [])
-    
+
+    function joinLobby(lobbyId : string ) {
+        const playerName = "yeye2"
+        socket.emit("joinLobby", {lobbyId, playerName})
+        navigate(`/multiplayer/${lobbyId}`)
+    }
 
     return (
         <div className="lobby-page">
@@ -79,7 +85,10 @@ export default function Lobby() {
                                         <div>
                                             {
                                                 Object.keys(lobbies).map((lobbyid, i) => (
-                                                    <div key={i}>{lobbyid}</div>
+                                                    <div key={i}>
+                                                        <div>{`Lobby : [${lobbyid}] by ${lobbies[lobbyid].players[0]}`}</div>
+                                                        <button onClick={() => joinLobby(lobbyid)}>Join</button>
+                                                    </div>
                                                 ))
                                             }
                                         </div>

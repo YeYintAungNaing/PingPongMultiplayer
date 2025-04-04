@@ -1,8 +1,8 @@
 class Onlinegame {
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
-    player: { x: number; y: number; radius : number };
-    player2: { x: number; y: number; radius : number };
+    player: { x: number; y: number; radius : number ; userName : string };
+    player2: { x: number; y: number; radius : number ; userName : string };
     isDragging: boolean = false;
     ball: { x: number; y: number; radius: number; velocityX: number; velocityY: number };
     maxBallSpeed: number = 6.5;
@@ -21,11 +21,11 @@ class Onlinegame {
     lastMouseY: number = 0;
     lastTimestamp: number = performance.now();
   
-    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D,  updateScore: (scoringSide : string) => void) {
+    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, playeroneName : string, playerTwoName : string,  updateScore: (scoringSide : string) => void) {
       this.canvas = canvas;
       this.ctx = ctx;
-      this.player = { x: 150, y: 275, radius : 40 };
-      this.player2 = {x: 950,  y: 275, radius: 40 };
+      this.player = { x: 150, y: 275, radius : 40, userName : playeroneName };
+      this.player2 = {x: 950,  y: 275, radius: 40, userName : playerTwoName };
       this.ball = { 
         x: 550, 
         y: 275, // mid point of canvas + diameter
