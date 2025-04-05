@@ -41,28 +41,11 @@ function Multiplayer() {
       alert("invalid lobby id")
       return
     }
-
-    // let animationFrameId: number;
-    // socket.emit("getLobbyInfo", {lobbyId}, (lobbyInfo : Lobby) => {
-    //   //console.log(lobbyInfo)
-
-    //   if (!lobbyInfo.gameStarted) {
-    //     console.log('waiting for player')
-    //     return
-    //   }
-    //   const [playerOneName, playerTwoName] = lobbyInfo.players;
-    //   setGameInitiated(true)
-    //   setPlayers(lobbyInfo.players)
-    //   const game = new Game(canvas, ctx, playerOneName, playerTwoName, updateScore);
-
-    //   const loop = () => {
-    //     //game.update();
-    //     game.updateBall();
-    //     game.draw();
-    //     animationFrameId = requestAnimationFrame(loop);
-    //   };
-    //   loop();
-    // })
+    const savedId = sessionStorage.getItem("lobbyId");
+    if (lobbyId !== savedId) {
+      alert('unauthorized user')
+      return
+    }
 
     let animationFrameId: number;
 
@@ -71,7 +54,10 @@ function Multiplayer() {
       setPlayers(players);
       setGameInitiated(true);
   
-      const game = new Game(canvas, ctx, p1, p2, updateScore);
+      const game = new Game(canvas, ctx, p1, p2, updateScore, socket, lobbyId);
+      // socket.on("gameStateUpdated", ({x , y}) => {
+      //   console.log(x, y)
+      // })
   
       const loop = () => {
         game.updateBall();
@@ -99,6 +85,7 @@ function Multiplayer() {
     return () => {
       cancelAnimationFrame(animationFrameId)
       socket.off("gameReady")
+      socket.off("gameStateUpdated")
     };
 
   }, [isGameOver]);

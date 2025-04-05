@@ -1,3 +1,5 @@
+import  {MySocket}  from "../socket/socketType";
+
 class Onlinegame {
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
@@ -7,12 +9,13 @@ class Onlinegame {
     ball: { x: number; y: number; radius: number; velocityX: number; velocityY: number };
     maxBallSpeed: number = 6.5;
     updateScore: (scoringSide: string) => void;
+    socket : MySocket
+    lobbyId : string
     
 
     goalHeight: number = 80;  
     goalYStart: number = (550 - 80) / 2; 
     goalYEnd: number = (550 + 80) / 2;  
-
 
     // to calculate cursor speed(player speed)
     playerSpeedX: number = 0;
@@ -21,7 +24,7 @@ class Onlinegame {
     lastMouseY: number = 0;
     lastTimestamp: number = performance.now();
   
-    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, playeroneName : string, playerTwoName : string,  updateScore: (scoringSide : string) => void) {
+    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, playeroneName : string, playerTwoName : string,  updateScore: (scoringSide : string) => void, socket :  MySocket, lobbyId : string) {
       this.canvas = canvas;
       this.ctx = ctx;
       this.player = { x: 150, y: 275, radius : 40, userName : playeroneName };
@@ -34,10 +37,21 @@ class Onlinegame {
         velocityY: 0 
       };
       this.updateScore = updateScore
+      this.socket = socket
+      this.lobbyId = lobbyId
 
   
       this.initMouseEvents();
+      this.socket.on("gameStateUpdated", this.handleGameStateUpdated);
+
     }
+
+    handleGameStateUpdated = ({x, y}) => {
+      this.player.x = x
+      this.player.y = y
+    }
+
+   
   
     initMouseEvents() {
       this.canvas.addEventListener("mousemove", this.onMouseMove);
@@ -77,7 +91,6 @@ class Onlinegame {
           return
         }
         
-        
         const now = performance.now();
         const deltaTime = (now - this.lastTimestamp) / 1000; 
         
@@ -86,8 +99,17 @@ class Onlinegame {
           this.playerSpeedY = (newY - this.lastMouseY) / deltaTime;
         }
     
-        this.player.x = Math.max(this.player.radius, Math.min(newX, this.canvas.width - this.player.radius));
-        this.player.y = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
+        // this.player.x = Math.max(this.player.radius, Math.min(newX, this.canvas.width - this.player.radius));
+        // this.player.y = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
+
+        const x_ = Math.max(this.player.radius, Math.min(newX, this.canvas.width - this.player.radius));
+        const y_ = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
+
+        this.socket.emit("playerMove", {
+          x: x_,
+          y: y_,
+          lobbyId : this.lobbyId
+        })
     
         this.lastMouseX = newX;
         this.lastMouseY = newY;
@@ -173,7 +195,6 @@ class Onlinegame {
     }
   
     
-   
     isColliding(player: { x: number; y: number; radius: number }, predictedX: number, predictedY: number): boolean {
       const dx = predictedX - player.x;
       const dy = predictedY - player.y;
@@ -229,6 +250,8 @@ class Onlinegame {
         this.ball.y = 225 + 40
       }
     }
+
+
      
     
     draw() {

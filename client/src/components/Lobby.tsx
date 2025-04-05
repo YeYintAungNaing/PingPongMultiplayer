@@ -38,6 +38,9 @@ export default function Lobby() {
 
         socket.emit("createLobby", { playerName }, (lobbyId: string) => {
             console.log(`Lobby : ${lobbyId} has been created`)
+            sessionStorage.setItem("playerName", playerName);
+            sessionStorage.setItem("lobbyId", lobbyId);
+            
             navigate(`/multiplayer/${lobbyId}`);
         });
     }
@@ -56,11 +59,34 @@ export default function Lobby() {
         
     }, [])
 
-    function joinLobby(lobbyId : string ) {
-        const playerName = "yeye2"
-        socket.emit("joinLobby", {lobbyId, playerName})
-        navigate(`/multiplayer/${lobbyId}`)
+    // function joinLobby(lobbyId : string ) {
+    //     if (!playerName) {
+    //         alert('enter your name')
+    //         return
+    //     }
+    //     socket.emit("joinLobby", {lobbyId, playerName})
+    //     sessionStorage.setItem("player", playerName);
+    //     sessionStorage.setItem("lobbyId", lobbyId);
+    //     navigate(`/multiplayer/${lobbyId}`)
+    // }
+
+    function joinLobby(lobbyId: string) {
+        if (!playerName) {
+          alert('enter your name')
+          return;
+        }
+      
+        socket.emit("joinLobby", { lobbyId, playerName }, (response: { success: boolean; message?: string }) => {
+          if (response.success) {
+            sessionStorage.setItem("player", playerName);
+            sessionStorage.setItem("lobbyId", lobbyId);
+            navigate(`/multiplayer/${lobbyId}`);
+          } else {
+            alert(response.message || "Failed to join lobby");
+          }
+        });
     }
+      
 
     return (
         <div className="lobby-page">
@@ -83,6 +109,7 @@ export default function Lobby() {
                                     {
                                        Object.keys(lobbies).length > 0 ? (
                                         <div>
+                                        <input value={playerName} onChange={(e)=> setPlayerName(e.target.value)} placeholder='Type your name' type="text" />
                                             {
                                                 Object.keys(lobbies).map((lobbyid, i) => (
                                                     <div key={i}>
