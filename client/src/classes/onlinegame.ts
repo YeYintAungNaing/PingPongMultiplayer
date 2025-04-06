@@ -1,18 +1,20 @@
 import  {MySocket}  from "../socket/socketType";
 
+interface Player{ x: number; y: number; radius : number ; playerName : string, speedX : number, speedY : number }
+
 class Onlinegame {
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
-    player: { x: number; y: number; radius : number ; userName : string };
-    player2: { x: number; y: number; radius : number ; userName : string };
-    isDragging: boolean = false;
+    player: Player
+    player2: Player
+    draggingPlayer: string |  null = null;
     ball: { x: number; y: number; radius: number; velocityX: number; velocityY: number };
     maxBallSpeed: number = 6.5;
     updateScore: (scoringSide: string) => void;
     socket : MySocket
     lobbyId : string
+    currentPlayer : string
     
-
     goalHeight: number = 80;  
     goalYStart: number = (550 - 80) / 2; 
     goalYEnd: number = (550 + 80) / 2;  
@@ -24,11 +26,11 @@ class Onlinegame {
     lastMouseY: number = 0;
     lastTimestamp: number = performance.now();
   
-    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, playeroneName : string, playerTwoName : string,  updateScore: (scoringSide : string) => void, socket :  MySocket, lobbyId : string) {
+    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, playerOnePosition : Player, playerTwoPosition : Player,  updateScore: (scoringSide : string) => void, socket :  MySocket, lobbyId : string, currentPlayer : string) {
       this.canvas = canvas;
       this.ctx = ctx;
-      this.player = { x: 150, y: 275, radius : 40, userName : playeroneName };
-      this.player2 = {x: 950,  y: 275, radius: 40, userName : playerTwoName };
+      this.player =  playerOnePosition
+      this.player2 = playerTwoPosition
       this.ball = { 
         x: 550, 
         y: 275, // mid point of canvas + diameter
@@ -39,6 +41,7 @@ class Onlinegame {
       this.updateScore = updateScore
       this.socket = socket
       this.lobbyId = lobbyId
+      this.currentPlayer = currentPlayer
 
   
       this.initMouseEvents();
@@ -46,55 +49,129 @@ class Onlinegame {
 
     }
 
-    handleGameStateUpdated = ({x, y}) => {
-      this.player.x = x
-      this.player.y = y
+    // currentGameState = {
+    //   "player1": { x: 100, y: 200, speedX: 5, speedY: 3 },
+    //   "player2": { x: 300, y: 200, speedX: -5, speedY: -3 }
+    // } 
+    handleGameStateUpdated = (currentGameState) => {
+      console.log(currentGameState)
+    
+      if (currentGameState[this.player.playerName]) {
+        this.player.x = currentGameState[this.player.playerName].x;
+        this.player.y = currentGameState[this.player.playerName].y;
+        console.log(this.player.x, this.player.y)
+      }
+    
+      if (currentGameState[this.player2.playerName]) {
+        this.player2.x = currentGameState[this.player2.playerName].x;
+        this.player2.y = currentGameState[this.player2.playerName].y;
+        console.log(this.player2.x, this.player2.y)
+      }
     }
 
    
-  
     initMouseEvents() {
       this.canvas.addEventListener("mousemove", this.onMouseMove);
       this.canvas.addEventListener("mouseup", this.onMouseUp);
     }
 
-    isInsideCircle(offsetX: number, offsetY: number): boolean {
-      const dx = offsetX - this.player.x;
-      const dy = offsetY - this.player.y;
-      return Math.sqrt(dx * dx + dy * dy) <= this.player.radius;
+    // isInsideCircle(offsetX: number, offsetY: number): "player" | "player2" | null {
+    //   const check = (player : Player) => {
+    //     const dx = offsetX - player.x;
+    //     const dy = offsetY - player.y;
+    //     return Math.sqrt(dx * dx + dy * dy) <= player.radius;
+    //   }
+    
+    //   if (check(this.player)) return "player";
+    //   if (check(this.player2)) return "player2";
+      
+    //   return null;
+    // }
+
+    isInsideCircle(offsetX: number, offsetY: number): "player" | "player2" | null {
+      const players: Array<["player" | "player2", Player]> = [
+        ["player", this.player],
+        ["player2", this.player2],
+      ];
+    
+      for (const [key, player] of players) {
+        const dx = offsetX - player.x;
+        const dy = offsetY - player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+    
+        if (distance <= player.radius) {
+          return key;
+        }
+      }
+    
+      return null;
     }
 
-    onMouseUp = (event : MouseEvent) => {
-      //console.log('up')
-      if (this.isDragging) {
-        this.isDragging = false
-        //console.log('cancel drag')
-        return
-      }
+    // onMouseUp = (event: MouseEvent) => {
+    //   if (this.draggingPlayer) {
+    //     this.draggingPlayer = null;
+    //     return;
+    //   }
+    
+    //   const { offsetX, offsetY } = event;
+    //   const clickedPlayer = this.isInsideCircle(offsetX, offsetY);
+    //   console.log(clickedPlayer)
+    
+    //   if (!clickedPlayer) {
+    //     this.draggingPlayer = null
+    //     console.log('no')
+    //     return
+    //   }
+    
+    //   // ownership check
+    //   const isOwner = (clickedPlayer === "player" && this.currentPlayer === this.player.playerName) ||
+    //                   (clickedPlayer === "player2" && this.currentPlayer === this.player2.playerName);
+    
+    //   if (isOwner) {
+    //     this.draggingPlayer = clickedPlayer; // directly assign "player" or "player2"
+    //   }
+    // };
 
-      const {offsetX, offsetY} = event;
-      if (this.isInsideCircle(offsetX, offsetY)) {
-        this.isDragging = true
-        //console.log('touched')
+    onMouseUp = (event: MouseEvent) => {
+      if (this.draggingPlayer) {
+        this.draggingPlayer = null;
+        return;
+      }
+    
+      const { offsetX, offsetY } = event;
+      const clickedPlayer = this.isInsideCircle(offsetX, offsetY);
+    
+      if (!clickedPlayer) {
+        this.draggingPlayer = null;
+        console.log('No player clicked');
+        return;
+      }
+    
+      // get actual player object based on "player" or "player2"
+      const clickedPlayerObj = this[clickedPlayer]; 
+    
+      if (clickedPlayerObj.playerName === this.currentPlayer) {
+        this.draggingPlayer = clickedPlayer; // either "player" or "player2"
       }
     };
-
   
     onMouseMove = (event: MouseEvent) => {
-      if (this.isDragging) {
+      if (this.draggingPlayer) {
         const newX = event.offsetX;
         const newY = event.offsetY;
+        console.log('dragging')
 
-        if (newX + this.player.radius >= this.canvas.width / 2) {
-          //console.log('passed')
-          this.playerSpeedX = 0
-          return
-        }
+        // if (newX + this.player.radius >= this.canvas.width / 2) {
+        //   //console.log('passed')
+        //   this.playerSpeedX = 0
+        //   return
+        // }
         
         const now = performance.now();
         const deltaTime = (now - this.lastTimestamp) / 1000; 
         
         if (deltaTime > 0) { 
+          
           this.playerSpeedX = (newX - this.lastMouseX) / deltaTime;
           this.playerSpeedY = (newY - this.lastMouseY) / deltaTime;
         }
@@ -102,12 +179,22 @@ class Onlinegame {
         // this.player.x = Math.max(this.player.radius, Math.min(newX, this.canvas.width - this.player.radius));
         // this.player.y = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
 
-        const x_ = Math.max(this.player.radius, Math.min(newX, this.canvas.width - this.player.radius));
-        const y_ = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
-
+        let x_;
+        let y_;
+        if (this.draggingPlayer === 'player') {
+          x_ = Math.max(this.player.radius, Math.min(newX, this.canvas.width / 2 - this.player.radius));
+          y_ = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
+        } 
+        else if (this.draggingPlayer === 'player2') {
+          x_ = Math.max(this.canvas.width / 2 + this.player2.radius, Math.min(newX, this.canvas.width - this.player2.radius));
+          y_ = Math.max(this.player2.radius, Math.min(newY, this.canvas.height - this.player2.radius));
+        }
+        
+        
         this.socket.emit("playerMove", {
           x: x_,
           y: y_,
+          currentPlayer : this.currentPlayer,
           lobbyId : this.lobbyId
         })
     

@@ -42,6 +42,11 @@ io.on("connection", (socket) => {
         //console.log(typeof lobbyId)
         lobbies[lobbyId] = { players: [playerName], gameStarted : false };
         socket.join(lobbyId); 
+        // playerPositions[lobbyId] = {
+        //     playerName: { x: 100, y: 200, speedX: 5, speedY: 3 }
+        // } 
+        playerPositions[lobbyId] ||= {};
+        playerPositions[lobbyId][playerName] = { x: 100, y: 200, speedX: 5, speedY: 3 };
         io.emit("updateLobbies", lobbies); // have to use io becuase this must be sent to every connected user inside the global io, not just spefic socket
         callback(lobbyId); 
     });
@@ -76,13 +81,12 @@ io.on("connection", (socket) => {
         socket.join(lobbyId);
       
         io.emit("updateLobbies", lobbies);
+        playerPositions[lobbyId] ||= {};
+        playerPositions[lobbyId][playerName] = { x: 950, y: 270, speedX: 5, speedY: 3 };
       
         if (lobby.players.length === 2) {
             lobby.gameStarted = true;
-            playerPositions[lobbyId] = {
-                            "player1": { x: 100, y: 200, speedX: 5, speedY: 3 },
-                            "player2": { x: 300, y: 200, speedX: -5, speedY: -3 }
-            } 
+           
             console.log(playerPositions)
             
             io.to(lobbyId).emit("gameReady");
@@ -115,12 +119,25 @@ io.on("connection", (socket) => {
         callback(lobbies[lobbyId])
     })
 
-    socket.on("playerMove", ({ x, y, lobbyId }) => {
-        io.to(lobbyId).emit("gameStateUpdated", {x, y})
-    });
-      
-});
+    socket.on("getGameState", (lobbyId, callback) => {
+        const currentGameState = playerPositions[lobbyId];
+        if (currentGameState) {
+            return callback({success : true, currentGameState})
+        }
+        else {
+            return callback({success : false})
+        }
+        
+    })
 
+    socket.on("playerMove", ({ x, y, lobbyId, currentPlayer }) => {
+        const currentGameState = playerPositions[lobbyId];
+        currentGameState[currentPlayer] = {x, y, speedX: 5, speedY: 3 }
+
+        io.to(lobbyId).emit("gameStateUpdated", currentGameState)
+        
+    }); 
+});
 
 server.listen(7000, () => {
     console.log("Listening on port 7000")

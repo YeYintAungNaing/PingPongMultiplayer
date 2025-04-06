@@ -17,6 +17,7 @@ function Multiplayer() {
   const [gameInitiated, setGameInitiated] = useState<boolean>(false)
   const [players, setPlayers] = useState<string[]>([])
   const {lobbyId} = useParams()
+  
   //const [manualEffect, setManualEffect] = useState<number>(0)
 
 
@@ -49,35 +50,61 @@ function Multiplayer() {
 
     let animationFrameId: number;
 
-    const startGame = (players: string[]) => {
-      const [p1, p2] = players;
-      setPlayers(players);
-      setGameInitiated(true);
-  
-      const game = new Game(canvas, ctx, p1, p2, updateScore, socket, lobbyId);
-      // socket.on("gameStateUpdated", ({x , y}) => {
-      //   console.log(x, y)
-      // })
-  
-      const loop = () => {
-        game.updateBall();
-        game.draw();
-        animationFrameId = requestAnimationFrame(loop);
-      };
-      loop();
+    const startGame = () => {
+      const currentPlayer = sessionStorage.getItem("playerName")
+
+      if (currentPlayer) {
+        socket.emit('getGameState', lobbyId, (response) => {
+            if (response.success) {
+              const currentGameState = response.currentGameState
+              const currentPlayers = Object.keys(currentGameState);
+              const [p1Name, p2Name] = currentPlayers;
+              
+              const playerOnePosition = { 
+                  ...currentGameState[p1Name], 
+                  radius: 40, 
+                  playerName: p1Name 
+              };
+              
+              const playerTwoPosition = { 
+                  ...currentGameState[p2Name], 
+                  radius: 40, 
+                  playerName: p2Name 
+              };
+              
+              setPlayers(currentPlayers)
+              setGameInitiated(true);
+
+              const game = new Game(canvas, ctx, playerOnePosition, playerTwoPosition, updateScore, socket, lobbyId, currentPlayer );
+
+              const loop = () => {
+                game.updateBall();
+                game.draw();
+                animationFrameId = requestAnimationFrame(loop);
+              };
+              loop();
+            }
+            else {
+              alert('error initiating game, please refresh')
+            }
+        })
+      }
+      else {
+        alert('invalid player!')
+      } 
     };
   
     
     socket.emit("getLobbyInfo", { lobbyId }, (lobbyInfo: Lobby) => {
       if (lobbyInfo.players.length === 2 && lobbyInfo.gameStarted) {
-        startGame(lobbyInfo.players);
+        startGame();
       } 
       else {
         socket.on("gameReady", () => {  // only open the listener when the game is not started
           
-          socket.emit("getLobbyInfo", { lobbyId }, (lobbyInfo_ : Lobby) => {
-            startGame(lobbyInfo_.players);
-          });
+          //socket.emit("getLobbyInfo", { lobbyId }, (lobbyInfo_ : Lobby) => {
+          startGame();
+          //});
         });
       }
     });

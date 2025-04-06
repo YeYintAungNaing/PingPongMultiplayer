@@ -78,7 +78,7 @@ export default function Lobby() {
       
         socket.emit("joinLobby", { lobbyId, playerName }, (response: { success: boolean; message?: string }) => {
           if (response.success) {
-            sessionStorage.setItem("player", playerName);
+            sessionStorage.setItem("playerName", playerName);
             sessionStorage.setItem("lobbyId", lobbyId);
             navigate(`/multiplayer/${lobbyId}`);
           } else {
