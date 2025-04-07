@@ -1,6 +1,9 @@
 import  {MySocket}  from "../socket/socketType";
 
-interface Player{ x: number; y: number; radius : number ; playerName : string, speedX : number, speedY : number }
+interface Player{ 
+                  x: number; y: number; radius : number ; 
+                  playerName : string, speedX : number, speedY : number  
+                }
 
 class Onlinegame {
     canvas: HTMLCanvasElement;
@@ -20,8 +23,8 @@ class Onlinegame {
     goalYEnd: number = (550 + 80) / 2;  
 
     // to calculate cursor speed(player speed)
-    playerSpeedX: number = 0;
-    playerSpeedY: number = 0;
+    // playerSpeedX: number = 0;
+    // playerSpeedY: number = 0;
     lastMouseX: number = 0;
     lastMouseY: number = 0;
     lastTimestamp: number = performance.now();
@@ -43,7 +46,6 @@ class Onlinegame {
       this.lobbyId = lobbyId
       this.currentPlayer = currentPlayer
 
-  
       this.initMouseEvents();
       this.socket.on("gameStateUpdated", this.handleGameStateUpdated);
 
@@ -57,19 +59,18 @@ class Onlinegame {
       console.log(currentGameState)
     
       if (currentGameState[this.player.playerName]) {
-        this.player.x = currentGameState[this.player.playerName].x;
-        this.player.y = currentGameState[this.player.playerName].y;
-        console.log(this.player.x, this.player.y)
+        this.player = {...this.player, ...currentGameState[this.player.playerName]}
+        //this.player = currentGameState[this.player.playerName];
+        //console.log(this.player.x, this.player.y)
       }
     
       if (currentGameState[this.player2.playerName]) {
-        this.player2.x = currentGameState[this.player2.playerName].x;
-        this.player2.y = currentGameState[this.player2.playerName].y;
-        console.log(this.player2.x, this.player2.y)
+        this.player2 = {...this.player2, ...currentGameState[this.player2.playerName]}
+        //this.player2 = currentGameState[this.player2.playerName];
+        //console.log(this.player2.x, this.player2.y)
       }
     }
 
-   
     initMouseEvents() {
       this.canvas.addEventListener("mousemove", this.onMouseMove);
       this.canvas.addEventListener("mouseup", this.onMouseUp);
@@ -167,14 +168,7 @@ class Onlinegame {
         //   return
         // }
         
-        const now = performance.now();
-        const deltaTime = (now - this.lastTimestamp) / 1000; 
-        
-        if (deltaTime > 0) { 
-          
-          this.playerSpeedX = (newX - this.lastMouseX) / deltaTime;
-          this.playerSpeedY = (newY - this.lastMouseY) / deltaTime;
-        }
+
     
         // this.player.x = Math.max(this.player.radius, Math.min(newX, this.canvas.width - this.player.radius));
         // this.player.y = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
@@ -189,11 +183,34 @@ class Onlinegame {
           x_ = Math.max(this.canvas.width / 2 + this.player2.radius, Math.min(newX, this.canvas.width - this.player2.radius));
           y_ = Math.max(this.player2.radius, Math.min(newY, this.canvas.height - this.player2.radius));
         }
+
+
+        const now = performance.now();
+        const deltaTime = (now - this.lastTimestamp) / 1000; 
+
+        let speedX;
+        let speedY;
+        
+        if (this.draggingPlayer === "player") {
+            speedX = this.player.speedX
+            speedY = this.player.speedY
+        }
+        else {
+            speedX = this.player2.speedX
+            speedY = this.player2.speedY
+        }
+        
+        if (deltaTime > 0) { 
+            speedX = (newX - this.lastMouseX) / deltaTime;
+            speedY = (newY - this.lastMouseY) / deltaTime;
+        }
         
         
         this.socket.emit("playerMove", {
           x: x_,
           y: y_,
+          speedX,
+          speedY,
           currentPlayer : this.currentPlayer,
           lobbyId : this.lobbyId
         })
@@ -251,8 +268,8 @@ class Onlinegame {
         // Threshold to ignore jittery mouse movements
         const minMovementThreshold = 1.5;  
 
-        const effectivePlayerSpeedX = Math.abs(this.playerSpeedX) > minMovementThreshold ? this.playerSpeedX : 0;
-        const effectivePlayerSpeedY = Math.abs(this.playerSpeedY) > minMovementThreshold ? this.playerSpeedY : 0;
+        const effectivePlayerSpeedX = Math.abs(this.player.speedX) > minMovementThreshold ? this.playerSpeedX : 0;
+        const effectivePlayerSpeedY = Math.abs(this.player.speedY) > minMovementThreshold ? this.playerSpeedY : 0;
 
         const speedFactor = 0.007;
         this.ball.velocityX += effectivePlayerSpeedX * speedFactor;

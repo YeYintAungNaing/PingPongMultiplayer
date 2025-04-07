@@ -6,7 +6,7 @@ import socket from "../socket/socket";
 
 interface Lobby {
    players : string[] ;
-   gameStarted : boolean
+   
 }
 
 function Multiplayer() {
@@ -96,7 +96,7 @@ function Multiplayer() {
   
     
     socket.emit("getLobbyInfo", { lobbyId }, (lobbyInfo: Lobby) => {
-      if (lobbyInfo.players.length === 2 && lobbyInfo.gameStarted) {
+      if (lobbyInfo.players.length === 2) {
         startGame();
       } 
       else {
@@ -144,12 +144,16 @@ function Multiplayer() {
   }
 
   //console.log(score)
+  function manualStart() {
+    socket.emit("startGame", lobbyId)
+  }
 
   return  (
       <div className="singleplayer">
           {
             gameInitiated && players.length === 2 && 
             <div className="scoreBoard">
+              <button onClick={manualStart}>start</button>
              {`${players[0]} ${score[0]} : ${score[1]} ${players[1]}`}
             </div>
           }

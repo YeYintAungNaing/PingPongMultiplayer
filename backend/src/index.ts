@@ -46,7 +46,7 @@ io.on("connection", (socket) => {
         //     playerName: { x: 100, y: 200, speedX: 5, speedY: 3 }
         // } 
         playerPositions[lobbyId] ||= {};
-        playerPositions[lobbyId][playerName] = { x: 100, y: 200, speedX: 5, speedY: 3 };
+        playerPositions[lobbyId][playerName] = { x: 150, y: 275, speedX: 0, speedY: 0 };
         io.emit("updateLobbies", lobbies); // have to use io becuase this must be sent to every connected user inside the global io, not just spefic socket
         callback(lobbyId); 
     });
@@ -82,10 +82,9 @@ io.on("connection", (socket) => {
       
         io.emit("updateLobbies", lobbies);
         playerPositions[lobbyId] ||= {};
-        playerPositions[lobbyId][playerName] = { x: 950, y: 270, speedX: 5, speedY: 3 };
+        playerPositions[lobbyId][playerName] = { x: 950, y: 270, speedX: 0, speedY: 0 };
       
         if (lobby.players.length === 2) {
-            lobby.gameStarted = true;
            
             console.log(playerPositions)
             
@@ -94,6 +93,17 @@ io.on("connection", (socket) => {
       
         return callback({ success: true });
     });
+
+    socket.on("startGame", (lobbyId) => {
+        if (lobbies[lobbyId].gameStarted) return
+        lobbies[lobbyId].gameStarted = true
+        console.log('yep')
+        setInterval(()=> {
+            const currentGameState = playerPositions[lobbyId];
+            io.to(lobbyId).emit("gameStateUpdated", currentGameState)
+        }, 1000/60) 
+    } )
+
       
 
     socket.on("rejoinLobby", ({lobbyId, playerName}) => {
@@ -130,11 +140,11 @@ io.on("connection", (socket) => {
         
     })
 
-    socket.on("playerMove", ({ x, y, lobbyId, currentPlayer }) => {
+    socket.on("playerMove", ({ x, y, speedX, speedY, lobbyId, currentPlayer }) => {
         const currentGameState = playerPositions[lobbyId];
-        currentGameState[currentPlayer] = {x, y, speedX: 5, speedY: 3 }
+        currentGameState[currentPlayer] = {x, y, speedX, speedY }
 
-        io.to(lobbyId).emit("gameStateUpdated", currentGameState)
+        //io.to(lobbyId).emit("gameStateUpdated", currentGameState)
         
     }); 
 });
