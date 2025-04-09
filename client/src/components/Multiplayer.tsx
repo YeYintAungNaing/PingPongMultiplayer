@@ -62,23 +62,29 @@ function Multiplayer() {
               
               const playerOnePosition = { 
                   ...currentGameState[p1Name], 
-                  radius: 40, 
+                  
                   playerName: p1Name 
               };
               
               const playerTwoPosition = { 
                   ...currentGameState[p2Name], 
-                  radius: 40, 
+    
                   playerName: p2Name 
               };
+              const ball = currentGameState.ball
+              //console.log(ball)
+            
               
-              setPlayers(currentPlayers)
+              setPlayers(currentPlayers.slice(0, 2))
+              getScore()
+              socket.on('getScoreLive', ()=> {
+                getScore()
+              })
               setGameInitiated(true);
 
-              const game = new Game(canvas, ctx, playerOnePosition, playerTwoPosition, updateScore, socket, lobbyId, currentPlayer );
+              const game = new Game(canvas, ctx, playerOnePosition, playerTwoPosition, ball, socket, lobbyId, currentPlayer );
 
               const loop = () => {
-                game.updateBall();
                 game.draw();
                 animationFrameId = requestAnimationFrame(loop);
               };
@@ -113,6 +119,7 @@ function Multiplayer() {
       cancelAnimationFrame(animationFrameId)
       socket.off("gameReady")
       socket.off("gameStateUpdated")
+      socket.off("getScoreLive")
     };
 
   }, [isGameOver]);
@@ -124,24 +131,16 @@ function Multiplayer() {
   //   });
   // }, [])
 
-  function updateScore(scoringSide: string) {
-    setScore((prevScore) => {
-      const newScore = [...prevScore];
-  
-      if (scoringSide === "left") {
-        newScore[0] += 1;
-      } 
-      else {
-        newScore[1] += 1;
-      }
-
-      if (newScore[0] >= 2 || newScore[1] >= 2) {
-        setIsGameOver(true);
-      }
-
-      return newScore; 
-    })
+  function getScore() {
+      socket.emit("getScore", lobbyId, (scores : number[]) => {
+        setScore(scores)
+      })
   }
+
+
+  useEffect(()=> {
+    getScore()
+  }, [])
 
   //console.log(score)
   function manualStart() {

@@ -85,6 +85,8 @@ class Game {
           this.playerSpeedX = (newX - this.lastMouseX) / deltaTime;
           this.playerSpeedY = (newY - this.lastMouseY) / deltaTime;
         }
+
+        //console.log(this.playerSpeedX, this.playerSpeedY)
     
         this.player.x = Math.max(this.player.radius, Math.min(newX, this.canvas.width - this.player.radius));
         this.player.y = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
@@ -213,7 +215,7 @@ class Game {
       if (this.isColliding(this.ai, predictedX, predictedY)) {
           this.handleCollision(this.ai);
       }
-  
+      console.log("ball", this.ball.velocityX, this.ball.velocityY)
       this.ball.x += this.ball.velocityX;
       this.ball.y += this.ball.velocityY;
       this.keepBallInsideCanvas();
@@ -284,6 +286,8 @@ class Game {
 
     // Ensure minimum speed
     const speed = Math.sqrt(this.ball.velocityX ** 2 + this.ball.velocityY ** 2);
+    console.log("player",  this.playerSpeedX, this.playerSpeedY)
+    console.log(speed)
     const minSpeed = 2; 
     if (speed < minSpeed) {
         const scale = minSpeed / speed;

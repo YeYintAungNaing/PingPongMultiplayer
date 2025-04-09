@@ -1,19 +1,25 @@
 import  {MySocket}  from "../socket/socketType";
 
 interface Player{ 
-                  x: number; y: number; radius : number ; 
-                  playerName : string, speedX : number, speedY : number  
-                }
+            x: number; y: number; radius : number ; 
+            playerName : string, speedX : number, speedY : number;
+            lastTimeStamp : number ;  lastMouseX : number , lastMouseY : number;
+            score : number
+              }
+interface Ball {
+       x: number; y: number; radius: number; speedX: number; speedY: number 
+       lastTimeStamp : number ;  lastMouseX : number , lastMouseY : number;
+              }
 
 class Onlinegame {
     canvas: HTMLCanvasElement;
-    ctx: CanvasRenderingContext2D;
+    ctx: CanvasRenderingContext2D;    
     player: Player
     player2: Player
     draggingPlayer: string |  null = null;
-    ball: { x: number; y: number; radius: number; velocityX: number; velocityY: number };
+    ball: Ball 
     maxBallSpeed: number = 6.5;
-    updateScore: (scoringSide: string) => void;
+    //updateScore: (scoringSide: string) => void;
     socket : MySocket
     lobbyId : string
     currentPlayer : string
@@ -25,23 +31,17 @@ class Onlinegame {
     // to calculate cursor speed(player speed)
     // playerSpeedX: number = 0;
     // playerSpeedY: number = 0;
-    lastMouseX: number = 0;
-    lastMouseY: number = 0;
-    lastTimestamp: number = performance.now();
+    // lastMouseX: number = 0;
+    // lastMouseY: number = 0;
+    //lastTimestamp: number = performance.now();
   
-    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, playerOnePosition : Player, playerTwoPosition : Player,  updateScore: (scoringSide : string) => void, socket :  MySocket, lobbyId : string, currentPlayer : string) {
+    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, playerOnePosition : Player, playerTwoPosition : Player, ballPosition : Ball, socket :  MySocket, lobbyId : string, currentPlayer : string) {
       this.canvas = canvas;
       this.ctx = ctx;
       this.player =  playerOnePosition
       this.player2 = playerTwoPosition
-      this.ball = { 
-        x: 550, 
-        y: 275, // mid point of canvas + diameter
-        radius: 20, 
-        velocityX: 0, 
-        velocityY: 0 
-      };
-      this.updateScore = updateScore
+      this.ball = ballPosition
+      //this.updateScore = updateScore
       this.socket = socket
       this.lobbyId = lobbyId
       this.currentPlayer = currentPlayer
@@ -56,19 +56,17 @@ class Onlinegame {
     //   "player2": { x: 300, y: 200, speedX: -5, speedY: -3 }
     // } 
     handleGameStateUpdated = (currentGameState) => {
-      console.log(currentGameState)
+     // console.log(currentGameState)
     
       if (currentGameState[this.player.playerName]) {
-        this.player = {...this.player, ...currentGameState[this.player.playerName]}
-        //this.player = currentGameState[this.player.playerName];
-        //console.log(this.player.x, this.player.y)
+        this.player = {...this.player, ...currentGameState[this.player.playerName]} 
       }
     
       if (currentGameState[this.player2.playerName]) {
         this.player2 = {...this.player2, ...currentGameState[this.player2.playerName]}
-        //this.player2 = currentGameState[this.player2.playerName];
-        //console.log(this.player2.x, this.player2.y)
       }
+      this.ball = currentGameState.ball
+      //console.log(this.player.speedX, this.player.speedY)
     }
 
     initMouseEvents() {
@@ -108,36 +106,12 @@ class Onlinegame {
       return null;
     }
 
-    // onMouseUp = (event: MouseEvent) => {
-    //   if (this.draggingPlayer) {
-    //     this.draggingPlayer = null;
-    //     return;
-    //   }
-    
-    //   const { offsetX, offsetY } = event;
-    //   const clickedPlayer = this.isInsideCircle(offsetX, offsetY);
-    //   console.log(clickedPlayer)
-    
-    //   if (!clickedPlayer) {
-    //     this.draggingPlayer = null
-    //     console.log('no')
-    //     return
-    //   }
-    
-    //   // ownership check
-    //   const isOwner = (clickedPlayer === "player" && this.currentPlayer === this.player.playerName) ||
-    //                   (clickedPlayer === "player2" && this.currentPlayer === this.player2.playerName);
-    
-    //   if (isOwner) {
-    //     this.draggingPlayer = clickedPlayer; // directly assign "player" or "player2"
-    //   }
-    // };
-
     onMouseUp = (event: MouseEvent) => {
       if (this.draggingPlayer) {
         this.draggingPlayer = null;
         return;
       }
+      console.log(this.ball)
     
       const { offsetX, offsetY } = event;
       const clickedPlayer = this.isInsideCircle(offsetX, offsetY);
@@ -158,11 +132,11 @@ class Onlinegame {
   
     onMouseMove = (event: MouseEvent) => {
       if (this.draggingPlayer) {
-        const newX = event.offsetX;
-        const newY = event.offsetY;
+        const mouseX = event.offsetX;
+        const mouseY = event.offsetY;
         console.log('dragging')
 
-        // if (newX + this.player.radius >= this.canvas.width / 2) {
+        // if (mouseX + this.player.radius >= this.canvas.width / 2) {
         //   //console.log('passed')
         //   this.playerSpeedX = 0
         //   return
@@ -170,193 +144,54 @@ class Onlinegame {
         
 
     
-        // this.player.x = Math.max(this.player.radius, Math.min(newX, this.canvas.width - this.player.radius));
-        // this.player.y = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
+        // this.player.x = Math.max(this.player.radius, Math.min(mouseX, this.canvas.width - this.player.radius));
+        // this.player.y = Math.max(this.player.radius, Math.min(mouseY, this.canvas.height - this.player.radius));
 
         let x_;
         let y_;
         if (this.draggingPlayer === 'player') {
-          x_ = Math.max(this.player.radius, Math.min(newX, this.canvas.width / 2 - this.player.radius));
-          y_ = Math.max(this.player.radius, Math.min(newY, this.canvas.height - this.player.radius));
+          x_ = Math.max(this.player.radius, Math.min(mouseX, this.canvas.width / 2 - this.player.radius));
+          y_ = Math.max(this.player.radius, Math.min(mouseY, this.canvas.height - this.player.radius));
         } 
         else if (this.draggingPlayer === 'player2') {
-          x_ = Math.max(this.canvas.width / 2 + this.player2.radius, Math.min(newX, this.canvas.width - this.player2.radius));
-          y_ = Math.max(this.player2.radius, Math.min(newY, this.canvas.height - this.player2.radius));
+          x_ = Math.max(this.canvas.width / 2 + this.player2.radius, Math.min(mouseX, this.canvas.width - this.player2.radius));
+          y_ = Math.max(this.player2.radius, Math.min(mouseY, this.canvas.height - this.player2.radius));
         }
 
 
-        const now = performance.now();
-        const deltaTime = (now - this.lastTimestamp) / 1000; 
+        // const now = performance.now();
+        // const deltaTime = (now - this.lastTimestamp) / 1000; 
 
-        let speedX;
-        let speedY;
+        // let speedX = 0
+        // let speedY = 0
         
-        if (this.draggingPlayer === "player") {
-            speedX = this.player.speedX
-            speedY = this.player.speedY
-        }
-        else {
-            speedX = this.player2.speedX
-            speedY = this.player2.speedY
-        }
+        // // if (this.draggingPlayer === "player") {
+        // //     speedX = this.player.speedX
+        // //     speedY = this.player.speedY
+        // // }
+        // // else {
+        // //     speedX = this.player2.speedX
+        // //     speedY = this.player2.speedY
+        // // }
         
-        if (deltaTime > 0) { 
-            speedX = (newX - this.lastMouseX) / deltaTime;
-            speedY = (newY - this.lastMouseY) / deltaTime;
-        }
+        // if (deltaTime > 0) { 
+        //     speedX = (mouseX - this.lastMouseX) / deltaTime;
+        //     speedY = (mouseY - this.lastMouseY) / deltaTime;
+        // }
         
         
         this.socket.emit("playerMove", {
           x: x_,
           y: y_,
-          speedX,
-          speedY,
+          mouseX,
+          mouseY,
+          radius : 40,
           currentPlayer : this.currentPlayer,
-          lobbyId : this.lobbyId
+          lobbyId : this.lobbyId,
         })
-    
-        this.lastMouseX = newX;
-        this.lastMouseY = newY;
-        this.lastTimestamp = now;
       }
     };
 
-
-    updateBall() {
-      const predictedX = this.ball.x + this.ball.velocityX;
-      const predictedY = this.ball.y + this.ball.velocityY;
-  
-      if (this.isGoal(predictedX, predictedY)) {
-          this.handleGoal(predictedX < this.canvas.width / 2 ? "right" : "left");
-          return; // Stop further processing for this frame
-      }
-  
-      // Check wall collisions
-      if (predictedX - this.ball.radius <= 0 || predictedX + this.ball.radius >= this.canvas.width) {
-          this.ball.velocityX *= -1; // Reverse X velocity upon wall collision
-      }
-      if (predictedY - this.ball.radius <= 0 || predictedY + this.ball.radius >= this.canvas.height) {
-          this.ball.velocityY *= -1; // Reverse Y velocity upon wall collision
-      }
-  
-      
-      if (this.isColliding(this.player, predictedX, predictedY)) {
-          this.handleCollision(this.player);
-      }
-  
-
-      if (this.isColliding(this.player2, predictedX, predictedY)) {
-          this.handleCollision(this.player2);
-      }
-  
-      this.ball.x += this.ball.velocityX;
-      this.ball.y += this.ball.velocityY;
-      this.keepBallInsideCanvas();
-    }
-
-    handleCollision(entity: { x: number; y: number; radius: number }) {
-        const dx = this.ball.x - entity.x;
-        const dy = this.ball.y - entity.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const normalX = dx / distance;
-        const normalY = dy / distance;
-
-        const dotProduct = this.ball.velocityX * normalX + this.ball.velocityY * normalY;
-        this.ball.velocityX -= 2 * dotProduct * normalX;
-        this.ball.velocityY -= 2 * dotProduct * normalY;
-
-        // Threshold to ignore jittery mouse movements
-        const minMovementThreshold = 1.5;  
-
-        const effectivePlayerSpeedX = Math.abs(this.player.speedX) > minMovementThreshold ? this.playerSpeedX : 0;
-        const effectivePlayerSpeedY = Math.abs(this.player.speedY) > minMovementThreshold ? this.playerSpeedY : 0;
-
-        const speedFactor = 0.007;
-        this.ball.velocityX += effectivePlayerSpeedX * speedFactor;
-        this.ball.velocityY += effectivePlayerSpeedY * speedFactor;
-
-        // Ensure minimum speed
-        const speed = Math.sqrt(this.ball.velocityX ** 2 + this.ball.velocityY ** 2);
-        const minSpeed = 2; 
-        if (speed < minSpeed) {
-            const scale = minSpeed / speed;
-            this.ball.velocityX *= scale;
-            this.ball.velocityY *= scale;
-        }
-
-        // Ensure max speed
-        if (speed > this.maxBallSpeed) {
-            const scale = this.maxBallSpeed / speed;
-            this.ball.velocityX *= scale;
-            this.ball.velocityY *= scale;
-        }
-
-        const overlap = (this.ball.radius + entity.radius) - distance;
-        if (overlap > 0) {
-            this.ball.x += overlap * normalX;
-            this.ball.y += overlap * normalY;
-        }
-    }
-  
-    
-    isColliding(player: { x: number; y: number; radius: number }, predictedX: number, predictedY: number): boolean {
-      const dx = predictedX - player.x;
-      const dy = predictedY - player.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      return distance <= player.radius + this.ball.radius;
-    }
-
-    keepBallInsideCanvas() {
-      const padding = 1; // A small margin to prevent boundary glitches
-    
-      if (this.ball.x - this.ball.radius < 0) {
-        this.ball.x = this.ball.radius + padding;
-        this.ball.velocityX = Math.abs(this.ball.velocityX);
-      } 
-      if (this.ball.x + this.ball.radius > this.canvas.width) {
-        this.ball.x = this.canvas.width - this.ball.radius - padding;
-        this.ball.velocityX = -Math.abs(this.ball.velocityX);
-      }
-      if (this.ball.y - this.ball.radius < 0) {
-        this.ball.y = this.ball.radius + padding;
-        this.ball.velocityY = Math.abs(this.ball.velocityY);
-      }
-      if (this.ball.y + this.ball.radius > this.canvas.height) {
-        this.ball.y = this.canvas.height - this.ball.radius - padding;
-        this.ball.velocityY = -Math.abs(this.ball.velocityY);
-      }
-    }
-
-    isGoal(x: number, y: number): boolean {
-      const isLeftGoal = x - this.ball.radius <= 0;
-      const isRightGoal = x + this.ball.radius >= this.canvas.width;
-      const inGoalYRange = y >= this.goalYStart && y <= this.goalYEnd;
-  
-      return (isLeftGoal || isRightGoal) && inGoalYRange;
-    }
-
-    handleGoal(scoringSide: "left" | "right") {
-      //console.log(`Goal for ${scoringSide} player!`);
-      this.updateScore(scoringSide)
-      this.resetBall(scoringSide);
-    }
-
-    resetBall(scoringSide :"left" | "right" ) {
-      this.ball.velocityX =  0
-      this.ball.velocityY =  0 
-      if (scoringSide === "right") {
-        this.ball.x = 400
-        this.ball.y = 225 + 40
-          
-      }
-      else {
-        this.ball.x = 700
-        this.ball.y = 225 + 40
-      }
-    }
-
-
-     
     
     draw() {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
