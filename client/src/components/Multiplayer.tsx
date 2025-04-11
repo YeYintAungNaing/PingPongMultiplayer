@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Game from "../classes/onlinegame";
-import '../styles/Singleplayer.scss'
+import '../styles/Multiplayer.scss'
 import { useParams } from "react-router-dom";
 import socket from "../socket/socket";
 
@@ -17,6 +17,7 @@ function Multiplayer() {
   const [gameInitiated, setGameInitiated] = useState<boolean>(false)
   const [players, setPlayers] = useState<string[]>([])
   const {lobbyId} = useParams()
+  const [message, setMessage] = useState<string>("Waiting for opponent")
   
   //const [manualEffect, setManualEffect] = useState<number>(0)
 
@@ -24,6 +25,12 @@ function Multiplayer() {
   //console.log(lobbyId)
 
   useEffect(() => {
+    // const handlePopState = () => {
+    //   socket.emit("leave-lobby", lobbyId);
+    //   console.log('leave')
+    // }
+    // window.addEventListener("popstate", handlePopState); 
+    
     if (isGameOver) {
       console.log('game over')
       return
@@ -72,14 +79,16 @@ function Multiplayer() {
                   playerName: p2Name 
               };
               const ball = currentGameState.ball
-              //console.log(ball)
+              console.log(ball)
             
               
               setPlayers(currentPlayers.slice(0, 2))
-              getScore()
-              socket.on('getScoreLive', ()=> {
-                getScore()
+              getScoreAndMsg()
+              socket.on('getScoreAndMsg', ()=> {
+                getScoreAndMsg()
               })
+             
+
               setGameInitiated(true);
 
               const game = new Game(canvas, ctx, playerOnePosition, playerTwoPosition, ball, socket, lobbyId, currentPlayer );
@@ -118,8 +127,9 @@ function Multiplayer() {
     return () => {
       cancelAnimationFrame(animationFrameId)
       socket.off("gameReady")
-      socket.off("gameStateUpdated")
-      socket.off("getScoreLive")
+      socket.off("getGameState")
+      socket.off("getScoreAndMsg")
+      socket.emit("leave-lobby", lobbyId);
     };
 
   }, [isGameOver]);
@@ -131,15 +141,17 @@ function Multiplayer() {
   //   });
   // }, [])
 
-  function getScore() {
-      socket.emit("getScore", lobbyId, (scores : number[]) => {
+  function getScoreAndMsg() {
+      socket.emit("getScoreAndMsg", lobbyId, (scores : number[], msg : string) => {
         setScore(scores)
+        //console.log(msg)
+        setMessage(msg)
       })
   }
 
 
   useEffect(()=> {
-    getScore()
+    getScoreAndMsg()
   }, [])
 
   //console.log(score)
@@ -148,7 +160,8 @@ function Multiplayer() {
   }
 
   return  (
-      <div className="singleplayer">
+      <div className="multiplayer">
+        <div className="message">{message}</div>
           {
             gameInitiated && players.length === 2 && 
             <div className="scoreBoard">

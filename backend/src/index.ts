@@ -19,12 +19,11 @@ const io = new Server(server, {
   cors: { origin:["http://localhost:5173", "http://localhost:5174"] }, 
 });
 
-app.get('/', (req, res) => {
-    res.send({test : "test"})
-})
+// app.get('/', (req, res) => {
+//     res.send({test : "test"})
+// })
 
 const lobbies: Record<string, { players: string[] ; gameStarted : boolean }> = {};
-const maxBallSpeed: number = 20;
 
 const gameStates: Record<string, { [keyValue: string]: StateValue }> = {};
 // const re = { "lobby123" : {
@@ -35,16 +34,21 @@ const gameStates: Record<string, { [keyValue: string]: StateValue }> = {};
 
 //gameScores = {"123dh" : [0,0]}
 const gameCanvas = {width: 1100, height : 550}
-const goalHeight: number = 80;  
+//const goalHeight: number = 80;  
 const goalYStart: number = (550 - 80) / 2; 
-const goalYEnd: number = (550 + 80) / 2;  
+const goalYEnd: number = (550 + 80) / 2; 
+const maxBallSpeed: number = 20; 
+let msg : string = "Waiting for player"
 
 
 io.on("connection", (socket) => {
+    let intervalRef : NodeJS.Timeout | undefined = undefined 
     console.log(`player connected with socket id : ${socket.id}`)
+    
 
     socket.on("disconnect", () => {
         console.log('disconnected')
+        // const sockets = await io.in(lobbyId).fetchSockets();
     })
 
     // exmaple lobies = {"2fgr4": { players: ["player1", "player2"] }}
@@ -53,6 +57,7 @@ io.on("connection", (socket) => {
         const lobbyId = Math.random().toString(36).substring(2, 8); 
         //console.log(typeof lobbyId)
         lobbies[lobbyId] = { players: [playerName], gameStarted : false };
+        
         socket.join(lobbyId); 
         // gameStates[lobbyId] = {
         //     playerName: { x: 100, y: 200, speedX: 5, speedY: 3 }
@@ -80,13 +85,11 @@ io.on("connection", (socket) => {
         socket.join(lobbyId);
       
         io.emit("updateLobbies", lobbies);
-        gameStates[lobbyId] ||= {};
         gameStates[lobbyId][playerName] = { x: 950, y: 270, speedX: 0, speedY: 0, lastMouseX : 0, lastMouseY : 0, lastTimeStamp : performance.now(), radius: 40. , score : 0};
         gameStates[lobbyId].ball = { x: 550, y: 275, radius: 20, speedX: 0, speedY: 0, lastMouseX : 0, lastMouseY : 0, lastTimeStamp : 0. , score : 0 };
         if (lobby.players.length === 2) {
            
             console.log(gameStates)
-
             
             io.to(lobbyId).emit("gameReady");
         }
@@ -94,13 +97,37 @@ io.on("connection", (socket) => {
         return callback({ success: true });
     });
 
+    socket.on("leave-lobby", async (lobbyId) => {  // leaving socket room with id
+        
+        await socket.leave(lobbyId)  
+
+        delete socket.data.lobbyId  
+
+        const clients = await io.in(lobbyId).fetchSockets();
+
+        if (clients.length  === 0) {  
+            clearInterval(intervalRef)
+            delete gameStates[lobbyId]
+            delete lobbies[lobbyId]
+            io.emit("updateLobbies", lobbies);
+            console.log('cleared everything')
+        }
+        else {
+            console.log('only leave one')
+        }
+     })
+
     socket.on("startGame", (lobbyId) => {
         if (lobbies[lobbyId].gameStarted) return
         lobbies[lobbyId].gameStarted = true
         console.log('yep')
-        setInterval(()=> {
+        clearInterval(intervalRef)
+        intervalRef = setInterval(()=> {
             const currentGameState = gameStates[lobbyId];
-            updateBall(currentGameState)
+            if (!currentGameState) {
+                clearInterval(intervalRef)
+            }
+            updateBall(currentGameState, lobbyId)
             
             io.to(lobbyId).emit("gameStateUpdated", currentGameState)
         }, 1000/60) 
@@ -142,6 +169,8 @@ io.on("connection", (socket) => {
         
     })
 
+    
+
     socket.on("playerMove", ({ x, y, radius, lobbyId, currentPlayer, mouseX, mouseY }) => {
         let currentGameState = gameStates[lobbyId];
         const now = performance.now();
@@ -164,27 +193,27 @@ io.on("connection", (socket) => {
         //io.to(lobbyId).emit("gameStateUpdated", currentGameState)
     });
     
-    socket.on("getScore", (lobbyId, callback) => {
+    socket.on("getScoreAndMsg", (lobbyId, callback) => {
         if (!lobbies[lobbyId].gameStarted) return
         const currentGameState = gameStates[lobbyId]
         const [p1, p2] = Object.keys(currentGameState)
         const scores : number[] = [currentGameState[p1].score, currentGameState[p2].score ]
-        callback(scores)
+        callback(scores, msg)
 
     })
 
-    function updateBall(currentGameState : { [keyValue: string]: StateValue }) {
+    function updateBall(currentGameState : { [keyValue: string]: StateValue }, lobbyId : string) {
         const [p1, p2] = Object.keys(currentGameState)
         const player = currentGameState[p1]
         const player2 = currentGameState[p2]
         const predictedX = currentGameState.ball.x + currentGameState.ball.speedX;
         const predictedY = currentGameState.ball.y + currentGameState.ball.speedY;
     
-        if (isGoal(predictedX, predictedY, currentGameState.ball)) {
-            console.log('ddd')
-            handleGoal(predictedX < gameCanvas.width / 2 ? "right" : "left", currentGameState);
-            return; // Stop further processing for frame
-        }
+        // if (isGoal(predictedX, predictedY, currentGameState.ball)) {
+        //     console.log('ddd')
+        //     handleGoal(predictedX < gameCanvas.width / 2 ? "right" : "left", currentGameState, lobbyId);
+        //     return; // Stop further processing for frame
+        // }
     
         // Check wall collisions
         if (predictedX - currentGameState.ball.radius <= 0 || predictedX + currentGameState.ball.radius >= gameCanvas.width) {
@@ -230,9 +259,9 @@ io.on("connection", (socket) => {
           const speedFactor = 0.02;
           currentGameState.ball.speedX += effectivePlayerSpeedX * speedFactor;
           currentGameState.ball.speedY += effectivePlayerSpeedY * speedFactor;
-    
-          // Ensure minimum speed
           
+    
+          // Ensure minimum speed 
           const speed = Math.sqrt(currentGameState.ball.speedX ** 2 + currentGameState.ball.speedY ** 2);
         //   console.log("player", player.speedX, player.speedY)
         //   console.log(speed)
@@ -249,11 +278,13 @@ io.on("connection", (socket) => {
               currentGameState.ball.speedX *= scale;
               currentGameState.ball.speedY *= scale;
           }
+          console.log("ball",currentGameState.ball.speedX, currentGameState.ball.speedY)
     
           const overlap = (currentGameState.ball.radius + player.radius) - distance;
           if (overlap > 0) {
               currentGameState.ball.x += overlap * normalX;
               currentGameState.ball.y += overlap * normalY;
+              console.log("ball+overlapped",currentGameState.ball.speedX, currentGameState.ball.speedY)
           }
       }
     
@@ -295,18 +326,34 @@ io.on("connection", (socket) => {
         return (isLeftGoal || isRightGoal) && inGoalYRange;
     }
     
-    function handleGoal(scoringSide: "left" | "right", currentGameState : { [keyValue: string]: StateValue } ) {
+    function handleGoal(scoringSide: "left" | "right", currentGameState : { [keyValue: string]: StateValue }, lobbyId : string ) {
         //console.log(`Goal for ${scoringSide} player!`);
         const [p1, p2] = Object.keys(currentGameState )
         const player = currentGameState[p1]
         const player2 = currentGameState[p2]
         if (scoringSide === "left") {
             player.score += 1
+            console.log(player.score)
+            
+            if (player.score === 2) {
+                msg = `${p1} won the game`
+            }
+            else{
+                msg = `${p1} scored a goal`
+            }
         }
         else {
             player2.score += 1
+            console.log(player2.score)
+            if (player2.score === 2) {
+                msg = `${p1} won the game`
+            }
+            else {
+                msg = `${p2} scored a goal`
+            } 
         }
-        io.emit("getScoreLive")
+        
+        io.to(lobbyId).emit("getScoreAndMsg")
         resetBall(scoringSide, currentGameState);
     }
     

@@ -1,0 +1,26 @@
+.multiplayer {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+
+    .game-display{
+        border: 1px solid rgb(3, 101, 72);
+    }
+
+    .message{
+        color: white;
+        position: fixed;
+        font-size: 20px;
+        left: 49%;
+        top: 30px;
+    }
+
+    .scoreBoard {
+        color: white;
+        position: fixed;
+        font-size: 20px;
+        left: 49%;
+        top: 60px;
+    }
+}
