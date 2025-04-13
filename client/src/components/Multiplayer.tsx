@@ -13,11 +13,12 @@ function Multiplayer() {
   
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [score, setScore] = useState<number[]>([0, 0])
-  const [isGameOver, setIsGameOver] = useState(false)
+  //const [isGameOver, setIsGameOver] = useState(false)
   const [gameInitiated, setGameInitiated] = useState<boolean>(false)
   const [players, setPlayers] = useState<string[]>([])
   const {lobbyId} = useParams()
   const [message, setMessage] = useState<string>("Waiting for opponent")
+  const [count, setCount] = useState<number | "">("")
   
   //const [manualEffect, setManualEffect] = useState<number>(0)
 
@@ -25,16 +26,7 @@ function Multiplayer() {
   //console.log(lobbyId)
 
   useEffect(() => {
-    // const handlePopState = () => {
-    //   socket.emit("leave-lobby", lobbyId);
-    //   console.log('leave')
-    // }
-    // window.addEventListener("popstate", handlePopState); 
-    
-    if (isGameOver) {
-      console.log('game over')
-      return
-    }
+   
     if (gameInitiated) {
       console.log('already initated')
       return
@@ -58,9 +50,10 @@ function Multiplayer() {
     let animationFrameId: number;
 
     const startGame = () => {
-      const currentPlayer = sessionStorage.getItem("playerName")
-
-      if (currentPlayer) {
+      const playerName = sessionStorage.getItem("playerName")
+      
+      if (playerName) {
+        socket.emit("rejoinLobby", { lobbyId, playerName })
         socket.emit('getGameState', lobbyId, (response) => {
             if (response.success) {
               const currentGameState = response.currentGameState
@@ -81,17 +74,19 @@ function Multiplayer() {
               const ball = currentGameState.ball
               console.log(ball)
             
-              
               setPlayers(currentPlayers.slice(0, 2))
               getScoreAndMsg()
               socket.on('getScoreAndMsg', ()=> {
                 getScoreAndMsg()
               })
-             
+              
+              socket.on('getCountDown', (count : number) => {
+                setCount(count)
+              })
 
               setGameInitiated(true);
 
-              const game = new Game(canvas, ctx, playerOnePosition, playerTwoPosition, ball, socket, lobbyId, currentPlayer );
+              const game = new Game(canvas, ctx, playerOnePosition, playerTwoPosition, ball, socket, lobbyId, playerName );
 
               const loop = () => {
                 game.draw();
@@ -129,10 +124,11 @@ function Multiplayer() {
       socket.off("gameReady")
       socket.off("getGameState")
       socket.off("getScoreAndMsg")
+      socket.off("getCountDown")
       socket.emit("leave-lobby", lobbyId);
     };
 
-  }, [isGameOver]);
+  },[]);
 
 
   // useEffect(()=> {
@@ -161,6 +157,7 @@ function Multiplayer() {
 
   return  (
       <div className="multiplayer">
+      <div className="count">{count}</div>
         <div className="message">{message}</div>
           {
             gameInitiated && players.length === 2 && 

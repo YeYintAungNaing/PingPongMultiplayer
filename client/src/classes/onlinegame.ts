@@ -48,6 +48,7 @@ class Onlinegame {
 
       this.initMouseEvents();
       this.socket.on("gameStateUpdated", this.handleGameStateUpdated);
+      this.socket.on("draggingReset", this.mouseDraggingReset);
 
     }
 
@@ -67,6 +68,10 @@ class Onlinegame {
       }
       this.ball = currentGameState.ball
       //console.log(this.player.speedX, this.player.speedY)
+    }
+
+    mouseDraggingReset() {
+      this.draggingPlayer = null;
     }
 
     initMouseEvents() {
@@ -157,28 +162,6 @@ class Onlinegame {
           x_ = Math.max(this.canvas.width / 2 + this.player2.radius, Math.min(mouseX, this.canvas.width - this.player2.radius));
           y_ = Math.max(this.player2.radius, Math.min(mouseY, this.canvas.height - this.player2.radius));
         }
-
-
-        // const now = performance.now();
-        // const deltaTime = (now - this.lastTimestamp) / 1000; 
-
-        // let speedX = 0
-        // let speedY = 0
-        
-        // // if (this.draggingPlayer === "player") {
-        // //     speedX = this.player.speedX
-        // //     speedY = this.player.speedY
-        // // }
-        // // else {
-        // //     speedX = this.player2.speedX
-        // //     speedY = this.player2.speedY
-        // // }
-        
-        // if (deltaTime > 0) { 
-        //     speedX = (mouseX - this.lastMouseX) / deltaTime;
-        //     speedY = (mouseY - this.lastMouseY) / deltaTime;
-        // }
-        
         
         this.socket.emit("playerMove", {
           x: x_,

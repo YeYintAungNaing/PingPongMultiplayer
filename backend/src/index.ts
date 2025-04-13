@@ -3,7 +3,6 @@ import http from "http"
 import { Server } from "socket.io"
 
 
-
 interface StateValue {
     x: number; y: number; 
     speedX: number; speedY: number, 
@@ -118,19 +117,33 @@ io.on("connection", (socket) => {
      })
 
     socket.on("startGame", (lobbyId) => {
-        if (lobbies[lobbyId].gameStarted) return
+        if (lobbies[lobbyId].gameStarted) {
+            console.log('no')
+            return
+        }
         lobbies[lobbyId].gameStarted = true
-        console.log('yep')
-        clearInterval(intervalRef)
-        intervalRef = setInterval(()=> {
-            const currentGameState = gameStates[lobbyId];
-            if (!currentGameState) {
+        let count : number = 3
+       
+        const countInterval = setInterval(() => {
+            io.to(lobbyId).emit("getCountDown", count )
+
+            if (count === 0 ) {
+                clearInterval(countInterval)
                 clearInterval(intervalRef)
+                intervalRef = setInterval(()=> {
+                    const currentGameState = gameStates[lobbyId];
+                    if (!currentGameState) {
+                        clearInterval(intervalRef)
+                        return
+                    }
+                    updateBall(currentGameState, lobbyId)
+                
+                    io.to(lobbyId).emit("gameStateUpdated", currentGameState)
+                }, 1000/60)
             }
-            updateBall(currentGameState, lobbyId)
-            
-            io.to(lobbyId).emit("gameStateUpdated", currentGameState)
-        }, 1000/60) 
+            count--;
+        }, 1000);
+   
     } )
 
       
@@ -141,9 +154,12 @@ io.on("connection", (socket) => {
             return
         }
         else {
-            socket.join(lobbyId)
-            console.log(`${playerName} rejoin the lobby`)
-            io.emit("updateLobbies", lobbies); 
+            const rooms = socket.rooms; 
+            if (!rooms.has(lobbyId)) {
+                socket.join(lobbyId);
+                console.log(`${playerName} rejoins the lobby`)
+                io.emit("updateLobbies", lobbies); 
+            }   
         }
     })
 
@@ -194,13 +210,15 @@ io.on("connection", (socket) => {
     });
     
     socket.on("getScoreAndMsg", (lobbyId, callback) => {
-        if (!lobbies[lobbyId].gameStarted) return
+        if (!lobbies[lobbyId] || !lobbies[lobbyId].gameStarted  ) return
         const currentGameState = gameStates[lobbyId]
         const [p1, p2] = Object.keys(currentGameState)
         const scores : number[] = [currentGameState[p1].score, currentGameState[p2].score ]
         callback(scores, msg)
 
     })
+
+    
 
     function updateBall(currentGameState : { [keyValue: string]: StateValue }, lobbyId : string) {
         const [p1, p2] = Object.keys(currentGameState)
@@ -374,7 +392,6 @@ io.on("connection", (socket) => {
     }
 
 });
-
 
 
 
