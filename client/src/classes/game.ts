@@ -25,7 +25,7 @@ class Game {
       this.canvas = canvas;
       this.ctx = ctx;
       this.player = { x: 150, y: 275, radius : 40 };
-      this.ai = {x: 950,  y: 275, radius: 40, speed: 3};
+      this.ai = {x: 950,  y: 275, radius: 40, speed: 1};
       this.ball = { 
         x: 550, 
         y: 275, // mid point of canvas + diameter
@@ -310,7 +310,6 @@ class Game {
   }
   
     
-   
     isColliding(player: { x: number; y: number; radius: number }, predictedX: number, predictedY: number): boolean {
       const dx = predictedX - player.x;
       const dy = predictedY - player.y;
@@ -350,21 +349,27 @@ class Game {
     handleGoal(scoringSide: "left" | "right") {
       //console.log(`Goal for ${scoringSide} player!`);
       this.updateScore(scoringSide)
-      this.resetBall(scoringSide);
+      this.resetGame(scoringSide);
     }
 
-    resetBall(scoringSide :"left" | "right" ) {
-      this.ball.velocityX =  0
-      this.ball.velocityY =  0 
+    resetGame(scoringSide :"left" | "right" ) {
+    
       if (scoringSide === "right") {
-        this.ball.x = 400
-        this.ball.y = 225 + 40
+        this.ball = { x: 400, y: 225 + 40, radius: 20, velocityX: 0, velocityY: 0 };
           
       }
-      else {
-        this.ball.x = 700
-        this.ball.y = 225 + 40
+      if(scoringSide === "left"){
+        this.ball = { x: 700, y: 225 + 40, radius: 20, velocityX: 0, velocityY: 0 };
+ 
       }
+      this.isDragging = false
+      this.player = { x: 150, y: 275, radius : 40 };
+      this.ai = {x: 950,  y: 275, radius: 40, speed: 1};
+      this.playerSpeedX = 0
+      this.playerSpeedY = 0
+      this.lastMouseX = 0
+      this.lastMouseY = 0
+      this.lastTimestamp = 0
     }
      
     

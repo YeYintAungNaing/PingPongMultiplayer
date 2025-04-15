@@ -88,9 +88,10 @@ io.on("connection", (socket) => {
         gameStates[lobbyId].ball = { x: 550, y: 275, radius: 20, speedX: 0, speedY: 0, lastMouseX : 0, lastMouseY : 0, lastTimeStamp : 0. , score : 0 };
         if (lobby.players.length === 2) {
            
-            console.log(gameStates)
+            //console.log(gameStates)
             
             io.to(lobbyId).emit("gameReady");
+            startGame(lobbyId)
         }
       
         return callback({ success: true });
@@ -116,7 +117,7 @@ io.on("connection", (socket) => {
         }
      })
 
-    socket.on("startGame", (lobbyId) => {
+    function startGame(lobbyId : string) {
         if (lobbies[lobbyId].gameStarted) {
             console.log('no')
             return
@@ -128,6 +129,7 @@ io.on("connection", (socket) => {
             io.to(lobbyId).emit("getCountDown", count )
 
             if (count === 0 ) {
+                console.log('start')
                 clearInterval(countInterval)
                 clearInterval(intervalRef)
                 intervalRef = setInterval(()=> {
@@ -141,12 +143,10 @@ io.on("connection", (socket) => {
                     io.to(lobbyId).emit("gameStateUpdated", currentGameState)
                 }, 1000/60)
             }
-            count--;
+            count--
         }, 1000);
-   
-    } )
+    }
 
-      
 
     socket.on("rejoinLobby", ({lobbyId, playerName}) => {
         if (!lobbies[lobbyId]) {
@@ -162,6 +162,7 @@ io.on("connection", (socket) => {
             }   
         }
     })
+
 
     socket.on("getLobbies", (callback) => {  // all avaialble lobbies to show in lobby page
         // const lobbyId = crypto.randomUUID(); 
@@ -185,7 +186,6 @@ io.on("connection", (socket) => {
         
     })
 
-    
 
     socket.on("playerMove", ({ x, y, radius, lobbyId, currentPlayer, mouseX, mouseY }) => {
         let currentGameState = gameStates[lobbyId];
@@ -219,7 +219,6 @@ io.on("connection", (socket) => {
     })
 
     
-
     function updateBall(currentGameState : { [keyValue: string]: StateValue }, lobbyId : string) {
         const [p1, p2] = Object.keys(currentGameState)
         const player = currentGameState[p1]
@@ -227,11 +226,11 @@ io.on("connection", (socket) => {
         const predictedX = currentGameState.ball.x + currentGameState.ball.speedX;
         const predictedY = currentGameState.ball.y + currentGameState.ball.speedY;
     
-        // if (isGoal(predictedX, predictedY, currentGameState.ball)) {
-        //     console.log('ddd')
-        //     handleGoal(predictedX < gameCanvas.width / 2 ? "right" : "left", currentGameState, lobbyId);
-        //     return; // Stop further processing for frame
-        // }
+        if (isGoal(predictedX, predictedY, currentGameState.ball)) {
+            console.log('ddd')
+            handleGoal(predictedX < gameCanvas.width / 2 ? "right" : "left", currentGameState, lobbyId);
+            return; // Stop further processing for frame
+        }
     
         // Check wall collisions
         if (predictedX - currentGameState.ball.radius <= 0 || predictedX + currentGameState.ball.radius >= gameCanvas.width) {
@@ -347,8 +346,8 @@ io.on("connection", (socket) => {
     function handleGoal(scoringSide: "left" | "right", currentGameState : { [keyValue: string]: StateValue }, lobbyId : string ) {
         //console.log(`Goal for ${scoringSide} player!`);
         const [p1, p2] = Object.keys(currentGameState )
-        const player = currentGameState[p1]
-        const player2 = currentGameState[p2]
+        let player = currentGameState[p1]
+        let player2 = currentGameState[p2]
         if (scoringSide === "left") {
             player.score += 1
             console.log(player.score)
@@ -370,7 +369,9 @@ io.on("connection", (socket) => {
                 msg = `${p2} scored a goal`
             } 
         }
-        
+        io.to(lobbyId).emit("draggingReset")
+        currentGameState[p1] = { x: 150, y: 275, speedX: 0, speedY: 0, lastMouseX : 0, lastMouseY : 0, lastTimeStamp : performance.now(), radius: 40, score : 0}
+        currentGameState[p2] = { x: 950, y: 270, speedX: 0, speedY: 0, lastMouseX : 0, lastMouseY : 0, lastTimeStamp : performance.now(), radius: 40. , score : 0}
         io.to(lobbyId).emit("getScoreAndMsg")
         resetBall(scoringSide, currentGameState);
     }
@@ -388,14 +389,11 @@ io.on("connection", (socket) => {
                 x: 700, y: 225+40, radius: 20, speedX: 0, speedY: 0, 
                 lastMouseX : 0, lastMouseY : 0, lastTimeStamp : 0 , score : 0
             }
-        }
+        }  
     }
-
 });
-
 
 
 server.listen(7000, () => {
     console.log("Listening on port 7000")
 })
-

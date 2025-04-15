@@ -151,9 +151,9 @@ function Multiplayer() {
   }, [])
 
   //console.log(score)
-  function manualStart() {
-    socket.emit("startGame", lobbyId)
-  }
+  // function manualStart() {
+  //   socket.emit("startGame", lobbyId)
+  // }
 
   return  (
       <div className="multiplayer">
@@ -162,7 +162,6 @@ function Multiplayer() {
           {
             gameInitiated && players.length === 2 && 
             <div className="scoreBoard">
-              <button onClick={manualStart}>start</button>
              {`${players[0]} ${score[0]} : ${score[1]} ${players[1]}`}
             </div>
           }

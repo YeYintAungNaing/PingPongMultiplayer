@@ -48,7 +48,7 @@ class Onlinegame {
 
       this.initMouseEvents();
       this.socket.on("gameStateUpdated", this.handleGameStateUpdated);
-      this.socket.on("draggingReset", this.mouseDraggingReset);
+      this.socket.on("draggingReset", this.mouseDraggingReset.bind(this));
 
     }
 
@@ -71,6 +71,7 @@ class Onlinegame {
     }
 
     mouseDraggingReset() {
+      console.log('reset')
       this.draggingPlayer = null;
     }
 
@@ -139,7 +140,8 @@ class Onlinegame {
       if (this.draggingPlayer) {
         const mouseX = event.offsetX;
         const mouseY = event.offsetY;
-        console.log('dragging')
+        //console.log('dragging')
+        //console.log(this.draggingPlayer)
 
         // if (mouseX + this.player.radius >= this.canvas.width / 2) {
         //   //console.log('passed')
@@ -147,7 +149,6 @@ class Onlinegame {
         //   return
         // }
         
-
     
         // this.player.x = Math.max(this.player.radius, Math.min(mouseX, this.canvas.width - this.player.radius));
         // this.player.y = Math.max(this.player.radius, Math.min(mouseY, this.canvas.height - this.player.radius));
